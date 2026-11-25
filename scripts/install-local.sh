@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 # Build this checkout and install it as `tradingagents`, for your own use: `npm run install:local`.
 #
-# The executable goes to TRADINGAGENTS_INSTALL_DIR (default ~/.local/bin, where install.sh puts a release);
-# the one there before is kept as tradingagents.previous. It is marked as a build of your own source, so it
-# does not offer releases of the original to replace it: to update, git pull and run this again.
+# The executable goes to TRADINGAGENTS_INSTALL_DIR (default ~/.local/bin, where install.sh puts a release),
+# in place of the one there before, which is not kept. It is marked as a build of your own source, so it does
+# not offer releases of the original to replace it: to update, git pull and run this again.
 set -eu
 
 root=$(cd "$(dirname "$0")/.." && pwd)
@@ -32,10 +32,6 @@ built="$root/dist-bin/$name"
 [ -x "$built" ] || fail "the build did not make $built"
 
 mkdir -p "$dir"
-if [ -e "$dir/$name" ]; then
-	cp -p "$dir/$name" "$dir/$name.previous"
-	echo "Kept the one installed before as $dir/$name.previous"
-fi
 # Copied beside it, then moved into place, so a failed copy never leaves half a file.
 cp "$built" "$dir/.$name.new"
 chmod 755 "$dir/.$name.new"

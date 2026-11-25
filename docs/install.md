@@ -42,7 +42,7 @@ git clone <your repository> && cd TradingAgents
 npm run install:local
 ```
 
-It needs Node.js 22 or newer, installs the build's dependencies the first time, and puts the executable in `~/.local/bin/tradingagents` (`TRADINGAGENTS_INSTALL_DIR` chooses another folder), keeping the one there before as `tradingagents.previous`. Such a build does not look for releases, which would replace it with the original: to update it, `git pull` and run `npm run install:local` again.
+It needs Node.js 22 or newer, installs the build's dependencies the first time, and puts the executable in `~/.local/bin/tradingagents` (`TRADINGAGENTS_INSTALL_DIR` chooses another folder), in place of the one there before. Such a build does not look for releases, which would replace it with the original: to update it, `git pull` and run `npm run install:local` again.
 
 ## Updates
 
