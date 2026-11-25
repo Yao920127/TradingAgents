@@ -192,7 +192,8 @@ export async function openChat(wiring: ChatWiring): Promise<OpenChat> {
       exitOnCtrlC: false,
       patchConsole: false,
       incrementalRendering: true,
-      kittyKeyboard: { mode: "auto" },
+      // "auto" probes the terminal first, and a reply that lands before raw mode is echoed as `^[[?0u`.
+      kittyKeyboard: { mode: "enabled" },
     },
   );
   return { exited: app.waitUntilExit().then(() => controls.settled), kept };
