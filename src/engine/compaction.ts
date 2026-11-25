@@ -13,6 +13,7 @@ import {
   COMPACTION_SYSTEM,
   compactionPrompt,
   SUMMARY_LABEL,
+  withLanguage,
 } from "../agents/prompts.js";
 import { complete } from "../agents/recovery.js";
 import {
@@ -166,7 +167,7 @@ export async function compact(
   const { text, finish, usage, error } = await complete(
     client,
     {
-      system: COMPACTION_SYSTEM,
+      system: withLanguage(COMPACTION_SYSTEM),
       messages: [{ role: "user", text: prompt }],
       tools: [],
       maxOutputTokens: summaryTokens(window),

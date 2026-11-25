@@ -12,6 +12,7 @@ import {
 } from "../../config/index.js";
 import { errorText, message, type RouteName } from "../../contracts/index.js";
 import { chatgptAuth } from "../../engine/index.js";
+import { claudeCommand, probeClaudeCode } from "../../models/claude-code.js";
 import { homePath } from "../output.js";
 import { hiddenLines } from "../secret.js";
 import type { SetupActions, SetupFacts } from "./setup-flows.js";
@@ -66,6 +67,19 @@ export function setupActions({
       await saveModel(choice, paths);
     },
     planModels: async () => (await auth.models()).map(({ id, name }) => ({ id, name })),
+    async checkClaudeCode() {
+      const command = claudeCommand();
+      const found = await probeClaudeCode(command);
+      if (found.state === "ready")
+        return { ready: true, said: message("setup.claudeCodeReady", { version: found.version }) };
+      return {
+        ready: false,
+        said:
+          found.state === "missing"
+            ? message("setup.claudeCodeMissing", { command })
+            : message("setup.claudeCodeSignedOut"),
+      };
+    },
     ...(terminal
       ? {
           async signIn() {

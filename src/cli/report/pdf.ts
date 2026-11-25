@@ -5,12 +5,14 @@
  * the answer (headings, paragraphs, lists, tables, code, quotes), then the numbered sources; each page's foot
  * names the product and its site in plain text (each a link), to read on paper too, with the page number.
  * The type is the figures' (Encode Sans Expanded, with JetBrains Mono for code and for any character the
- * text face lacks), embedded so the file reads the same everywhere. Calm on purpose: dark grey text on
+ * text face lacks), embedded so the file reads the same everywhere; Chinese is set in a CJK font found on the
+ * system (cjk-font.ts), of which only the glyphs used are embedded. Calm on purpose: dark grey text on
  * white, the brand green only on the rules and the product's name.
  */
 import PDFDocument from "pdfkit";
 import { APP_TITLE, MAKER, message } from "../../contracts/index.js";
 import { REPO, SITE } from "../links.js";
+import { type CjkFont, findCjkFont, isCjk } from "./cjk-font.js";
 import fonts from "./fonts.generated.json" with { type: "json" };
 import type { Part, Run } from "./layout.js";
 import type { Report } from "./report.js";
@@ -34,7 +36,7 @@ const AFTER = 7;
 const INDENT = 14;
 const HEADING = { 1: 15, 2: 12.5, 3: 11 } as Record<number, number>;
 
-type Face = "regular" | "bold" | "mono";
+type Face = "regular" | "bold" | "mono" | "cjk";
 
 /** Each page's foot, beside its number: the product and its site, each linking to its address. */
 const FOOT_LINKS: { text: string; link?: string }[] = [
@@ -51,10 +53,16 @@ const LETTERHEAD: { text: string; face: Face; color: string; link?: string }[] =
 ];
 
 /**
- * No ligatures: a ligature's glyph copies out of the PDF as other letters ("filing" as "fling"). Fontkit takes
+ * No ligatures: a ligature's glyph copies out of the PDF as other letters ("filing" as "fling"). No vertical
+ * forms either: a CJK font would set full-width brackets as their vertical-writing shapes. Fontkit takes
  * features as tags to turn on or as an object of on and off, which PDFKit's types do not list.
  */
-const FEATURES = { liga: false, clig: false } as unknown as PDFKit.Mixins.OpenTypeFeatures[];
+const FEATURES = {
+  liga: false,
+  clig: false,
+  vert: false,
+  vrt2: false,
+} as unknown as PDFKit.Mixins.OpenTypeFeatures[];
 
 /** Whether `ranges` (sorted, inclusive) hold `point`. */
 function within(ranges: readonly (readonly number[])[], point: number): boolean {
@@ -72,12 +80,14 @@ function within(ranges: readonly (readonly number[])[], point: number): boolean 
 
 /** Whether the text face (both weights) has a glyph for `point`. */
 const covered = (point: number) => within(fonts.covered, point);
+/** Whether the mono face has a glyph for `point`. */
+const monoCovered = (point: number) => within(fonts.monoCovered, point);
 
 /**
- * How many characters of `report` neither face can set (a script such as Chinese): they show as empty boxes,
- * which the export says.
+ * How many characters of `report` no face can set: they show as empty boxes, which the export says. With a
+ * CJK font, Chinese (and the other CJK scripts) is set in it, so only what none of the faces has is counted.
  */
-export function uncovered(report: Report): number {
+export function uncovered(report: Report, cjk: CjkFont | null = findCjkFont() ?? null): number {
   const texts = [
     report.title,
     report.question,
@@ -89,7 +99,8 @@ export function uncovered(report: Report): number {
   for (const text of texts)
     for (const char of text) {
       const point = char.codePointAt(0) ?? 0;
-      if (!/\s/.test(char) && !covered(point) && !within(fonts.monoCovered, point)) count++;
+      if (/\s/.test(char) || covered(point) || monoCovered(point)) continue;
+      if (!(cjk && isCjk(point))) count++;
     }
   return count;
 }
@@ -114,12 +125,23 @@ function partTexts(parts: readonly Part[]): string[] {
   });
 }
 
-/** `text` in `face`, split where the text face lacks a character: those stretches are set in the mono face. */
-function faced(text: string, face: Face): { text: string; face: Face }[] {
-  if (face === "mono") return [{ text, face }];
+/**
+ * The face to set one character in, for text meant for `face`: that face when it has the character, else the
+ * mono face when it has it, else the CJK font when there is one, else the mono face (an empty box).
+ */
+function faceOf(point: number, face: Face, cjk: boolean): Face {
+  if (face === "cjk") return face;
+  if (face === "mono" ? monoCovered(point) : covered(point)) return face;
+  if (monoCovered(point)) return "mono";
+  return cjk && isCjk(point) ? "cjk" : "mono";
+}
+
+/** `text` in `face`, split where that face lacks a character: those stretches are set in the face that has it. */
+function faced(text: string, face: Face, cjk: boolean): { text: string; face: Face }[] {
   const out: { text: string; face: Face }[] = [];
   for (const char of text) {
-    const want: Face = char === "\n" || covered(char.codePointAt(0) ?? 0) ? face : "mono";
+    const want: Face =
+      char === "\n" ? (out.at(-1)?.face ?? face) : faceOf(char.codePointAt(0) ?? 0, face, cjk);
     const last = out.at(-1);
     if (last?.face === want) last.text += char;
     else out.push({ text: char, face: want });
@@ -127,13 +149,23 @@ function faced(text: string, face: Face): { text: string; face: Face }[] {
   return out;
 }
 
-/** The face a whole string can be set in: the mono face when the text face lacks any of it. */
-function faceFor(text: string, face: Face): Face {
-  return [...text].every((char) => covered(char.codePointAt(0) ?? 0)) ? face : "mono";
+/**
+ * The face a whole string can be set in (a table cell, a label, a code block): `face` when it has all of it,
+ * else the CJK font when the string holds Chinese and there is one, else the mono face.
+ */
+function faceFor(text: string, face: Face, cjk: boolean): Face {
+  const points = [...text].map((char) => char.codePointAt(0) ?? 0);
+  const has = face === "mono" ? monoCovered : covered;
+  if (points.every((point) => has(point) || point === 10)) return face;
+  if (cjk && points.some(isCjk)) return "cjk";
+  return "mono";
 }
 
 /** The report as PDF bytes. */
-export async function reportPdf(report: Report): Promise<Uint8Array> {
+export async function reportPdf(
+  report: Report,
+  cjkFont: CjkFont | null = findCjkFont() ?? null,
+): Promise<Uint8Array> {
   const doc = new PDFDocument({
     size: "LETTER",
     margin: MARGIN,
@@ -149,6 +181,11 @@ export async function reportPdf(report: Report): Promise<Uint8Array> {
   doc.registerFont("regular", Buffer.from(fonts.regular, "base64"));
   doc.registerFont("bold", Buffer.from(fonts.bold, "base64"));
   doc.registerFont("mono", Buffer.from(fonts.mono, "base64"));
+  // Chinese in the CJK font when one can be read; else it shows as empty boxes, as the export says.
+  const cjk = cjkFont !== null && registerCjk(doc, cjkFont);
+  /** The face for a whole string, and a string split by face, with this document's fonts. */
+  const whole = (text: string, face: Face) => faceFor(text, face, cjk);
+  const split = (text: string, face: Face) => faced(text, face, cjk);
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
   const ended = new Promise<void>((resolve, reject) => {
@@ -176,7 +213,7 @@ export async function reportPdf(report: Report): Promise<Uint8Array> {
   /** Runs set as one paragraph at `x`, `w` wide. */
   const paragraph = (runs: readonly Run[], x: number, w: number, size: number, color: string) => {
     const pieces = runs.flatMap((run) =>
-      faced(run.text, run.code ? "mono" : run.bold ? "bold" : "regular").map((piece) => ({ run, ...piece })),
+      split(run.text, run.code ? "mono" : run.bold ? "bold" : "regular").map((piece) => ({ run, ...piece })),
     );
     if (!pieces.length) return;
     doc.x = x;
@@ -200,7 +237,7 @@ export async function reportPdf(report: Report): Promise<Uint8Array> {
   const table = (part: Extract<Part, { kind: "table" }>, x: number, w: number) => {
     const cell = (text: string, column: number, header: boolean) => ({
       text,
-      font: { src: faceFor(text, header ? "bold" : "regular"), size: SMALL },
+      font: { src: whole(text, header ? "bold" : "regular"), size: SMALL },
       align: { x: part.align[column] ?? "left", y: "top" as const },
       textOptions: { features: FEATURES },
     });
@@ -274,7 +311,7 @@ export async function reportPdf(report: Report): Promise<Uint8Array> {
           doc.y += AFTER;
           break;
         case "code": {
-          doc.font("mono").fontSize(SMALL);
+          doc.font(whole(part.text, "mono")).fontSize(SMALL);
           const height =
             doc.heightOfString(part.text, { width: w - 16, lineGap: 1.5, features: FEATURES }) + 12;
           // A block that fits on a page starts on one; a longer one starts here once a few lines fit.
@@ -345,7 +382,7 @@ export async function reportPdf(report: Report): Promise<Uint8Array> {
   if (asked.length) {
     const inner = width - 28;
     const heights = asked.map(({ label, text }) => {
-      doc.font("regular").fontSize(BODY);
+      doc.font(whole(text, "regular")).fontSize(BODY);
       return (
         doc.heightOfString(text, { width: inner, lineGap: LINE_GAP, features: FEATURES }) + (label ? 11 : 0)
       );
@@ -359,7 +396,7 @@ export async function reportPdf(report: Report): Promise<Uint8Array> {
     for (const { label, text } of asked) {
       if (label) {
         doc
-          .font("bold")
+          .font(whole(label, "bold"))
           .fontSize(6.5)
           .fillColor(MUTED)
           .text(label.toUpperCase(), left + 14, doc.y, {
@@ -382,11 +419,12 @@ export async function reportPdf(report: Report): Promise<Uint8Array> {
     doc.y += 6;
     rule(doc.y, FAINT);
     doc.y += 10;
+    const sourcesHeading = message("report.sources");
     doc
-      .font("bold")
+      .font(whole(sourcesHeading, "bold"))
       .fontSize(10)
       .fillColor(INK)
-      .text(message("report.sources"), left, doc.y, { width, features: FEATURES });
+      .text(sourcesHeading, left, doc.y, { width, features: FEATURES });
     doc.y += 4;
     for (const line of report.sources) {
       paragraph([{ text: line }], left, width, SMALL, MUTED);
@@ -414,6 +452,7 @@ export async function reportPdf(report: Report): Promise<Uint8Array> {
       else doc.text(text, options);
     });
     const pageText = message("report.page", { page: page - start + 1, count });
+    doc.font(whole(pageText, "regular"));
     doc.text(pageText, left + width - doc.widthOfString(pageText, { features: FEATURES }), foot, {
       lineBreak: false,
       features: FEATURES,
@@ -423,4 +462,20 @@ export async function reportPdf(report: Report): Promise<Uint8Array> {
   doc.end();
   await ended;
   return new Uint8Array(Buffer.concat(chunks));
+}
+
+/**
+ * Register `font` as the "cjk" face; false when it cannot be read (a missing file, or a collection without
+ * the face named), so the report is still written, its Chinese as empty boxes.
+ */
+function registerCjk(doc: PDFKit.PDFDocument, font: CjkFont): boolean {
+  try {
+    doc.registerFont("cjk", font.path, font.family as string);
+    // Opening it here, not at the first Chinese character, finds a bad file before anything is set.
+    doc.font("cjk");
+    doc.font("regular");
+    return true;
+  } catch {
+    return false;
+  }
 }

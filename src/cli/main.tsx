@@ -9,17 +9,21 @@ import {
   limitFlags,
   loadSettings,
   type Paths,
+  resolveLanguage,
   resolveLimits,
   resolvePaths,
   type Settings,
+  setLanguageNamedBy,
 } from "../config/index.js";
 import {
   APP_NAME,
   APP_TITLE,
   errorText,
+  LOCALES,
   type ModelRoute,
   message,
   type RouteName,
+  setLocale,
   VERSION,
 } from "../contracts/index.js";
 import {
@@ -43,7 +47,8 @@ import {
   tauricSessions,
 } from "../engine/index.js";
 import { EXIT, runHeadless } from "../headless/run.js";
-import { type Args, EXIT_USAGE, misuseOf, parse, USAGE } from "./args.js";
+import { runToolServer, TOOL_SERVER_COMMAND } from "../models/claude-code-tools.js";
+import { type Args, EXIT_USAGE, misuseOf, parse, usageText } from "./args.js";
 import type { ChatControls } from "./ChatApp.js";
 import { FlowCancelledError } from "./form/form-ui.js";
 import { openChat, type RunsOn } from "./interactive.js";
@@ -70,21 +75,48 @@ import { checkForUpdate, releaseLookup, skipVersion, updateSource } from "./upda
 /** Set when the app left a turn that would not stop: its timers and requests must not keep the process. */
 let endNow = false;
 
+/**
+ * Read the application in the language chosen (`--lang`, the environment, config.json, the system), saying
+ * what could not be used; EXIT_USAGE when `--lang` names no language.
+ */
+function chooseLanguage(flag: string | undefined): undefined | typeof EXIT_USAGE {
+  let configPath: string | undefined;
+  try {
+    configPath = resolvePaths().config;
+  } catch {
+    // A home that cannot be named is reported by the command that needs it.
+  }
+  const choice = resolveLanguage({ flag, env: process.env, configPath });
+  setLocale(choice.locale);
+  setLanguageNamedBy(choice.namedBy);
+  if (choice.badFlag !== undefined) {
+    const said = message("cli.badLanguage", { value: choice.badFlag, locales: LOCALES.join(", ") });
+    toErr(`${said}\n\n${usageText()}\n`);
+    return EXIT_USAGE;
+  }
+  for (const problem of choice.problems) toErr(`${message("cli.warning", { problem })}\n`);
+}
+
 async function main(argv: string[]): Promise<number> {
   let parsed: Args;
   try {
     parsed = parse(argv);
   } catch (error) {
-    toErr(`${errorText(error)}\n\n${USAGE}\n`);
+    toErr(`${errorText(error)}\n\n${usageText()}\n`);
     return EXIT_USAGE;
   }
   const { values, positionals } = parsed;
-  if (values.help) return print(USAGE);
+  // Claude Code starting this program as the MCP server that lists the tools of a step (claude-code.ts).
+  if (positionals[0] === TOOL_SERVER_COMMAND && positionals[1]) return runToolServer(positionals[1]);
+  // The language comes first, so everything printed from here on is in it.
+  const language = chooseLanguage(values.lang);
+  if (language === EXIT_USAGE) return EXIT_USAGE;
+  if (values.help) return print(usageText());
   if (values.version) return print(VERSION);
   const [command, ...rest] = positionals;
   const misuse = misuseOf(command, rest, values);
   if (misuse) {
-    toErr(`${misuse}\n\n${USAGE}\n`);
+    toErr(`${misuse}\n\n${usageText()}\n`);
     return EXIT_USAGE;
   }
 
@@ -118,7 +150,7 @@ async function main(argv: string[]): Promise<number> {
   })();
   const refused = [...flags.problems, ...given.problems, ...agentLimitProblems(given.limits, catalog)];
   if (refused.length) {
-    toErr(`${refused.join("\n")}\n\n${USAGE}\n`);
+    toErr(`${refused.join("\n")}\n\n${usageText()}\n`);
     return EXIT_USAGE;
   }
   const headless = values.prompt !== undefined;

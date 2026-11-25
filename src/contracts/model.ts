@@ -88,13 +88,14 @@ export type HostedProvider = (typeof HOSTED_PROVIDERS)[number];
 export const PROVIDER_IDS = [
   "tauric",
   "chatgpt",
+  "claude-code",
   "openai",
   "anthropic",
   "google",
   "deepseek",
   "openrouter",
   "openai-compatible",
-] as const satisfies readonly (HostedProvider | "chatgpt" | "openai-compatible")[];
+] as const satisfies readonly (HostedProvider | "chatgpt" | "claude-code" | "openai-compatible")[];
 export type ProviderId = (typeof PROVIDER_IDS)[number];
 
 /** How much a model reasons, least first; `provider-default` leaves it to the provider. */
@@ -133,6 +134,13 @@ export type ModelRoute =
       /** How much it reasons when it thinks; the provider's default when unset. */
       reasoning?: ReasoningLevel;
       /** The context window to use, when set: else the plan's report, else a fallback. */
+      contextWindow?: number;
+    }
+  | {
+      /** The `claude` command signed in on this computer: no key, its sign-in is Claude Code's own. */
+      provider: "claude-code";
+      model: string;
+      reasoning?: ReasoningLevel;
       contextWindow?: number;
     }
   | {

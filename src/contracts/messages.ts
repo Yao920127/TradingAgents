@@ -5,9 +5,23 @@
  * reported problems, the questions it asks, and the one-line summary each tool call shows. Text
  * written only for the model is in agents/prompts.ts or, for a tool's results, with the tool, and text a
  * model or a source wrote is shown as written. Values that vary come in as
- * parameters; this module imports nothing.
+ * parameters. This is the English table; messages.zh-TW.ts holds the same keys in Traditional Chinese, and
+ * `message()` reads the table of the language set with `setLocale()`.
  * Style: no em-dash and no middle dot.
  */
+
+import { zhTW } from "./messages.zh-TW.js";
+import {
+  commandTable,
+  duration,
+  formatBytes,
+  type Locale,
+  PROVIDER_LABELS,
+  SIGN_UP_URL,
+  tokens,
+} from "./messages-shared.js";
+
+export { formatBytes, LOCALES, type Locale, PROVIDER_LABELS, SIGN_UP_URL } from "./messages-shared.js";
 
 /** A cap's name as a limit is called. */
 const CAP_WORDS: Record<string, string> = {
@@ -17,8 +31,6 @@ const CAP_WORDS: Record<string, string> = {
   time: "time",
 };
 
-/** Where a person gets a Tauric API key. */
-export const SIGN_UP_URL = "https://tauric.ai/signup";
 /** What a Tauric API key is for, said the same way wherever its purpose is stated. */
 const KEY_PURPOSE = "AI and data";
 
@@ -30,9 +42,50 @@ function getOne(): string {
   return `Get one at ${SIGN_UP_URL}`;
 }
 
-const catalog = {
+export const en = {
   // Command line
   "cli.usage": ({ app }: { app: string }) => usage(app),
+  "cli.badLanguage": ({ value, locales }: { value: string; locales: string }) =>
+    `--lang ${value}: not a language (${locales})`,
+
+  // Slash commands, /help and /status
+  "cmd.help": () => "commands and keys",
+  "cmd.status": () => "model, data, sync and session",
+  "cmd.new": () => "start a new session",
+  "cmd.resume": () => "resume an earlier session, here or in your Tauric account",
+  "cmd.model": () => "choose the model this session and new ones run on",
+  "cmd.login": () => "connect a provider, or add a Tauric API key",
+  "cmd.language": () => "choose the language: English or Traditional Chinese",
+  "cmd.agents": () => "the agents the main agent can ask",
+  "cmd.skills": () => "the skills the main agent can load",
+  "cmd.export": () => "save the last answer as a PDF report, the transcript as Markdown, or both",
+  "cmd.copy": () => "copy the last answer to the clipboard",
+  "cmd.changelog": () => "what changed in this version",
+  "cmd.exit": () => "leave",
+  "keys.enter": () => "send; on an empty input, send the next question queued",
+  "keys.newLine": () => "a new line; also Alt+Enter, Ctrl+J, or \\ then Enter",
+  "keys.history": () => "earlier questions",
+  "keys.search": () => "search earlier questions",
+  "keys.mode": () => "switch mode: auto (the agent decides how to work) or plan (it proposes a plan first)",
+  "keys.esc": () => "stop the answer, or close a menu",
+  "keys.ctrlC": () => "clear the input, stop the answer, or leave",
+  "keys.ctrlD": () => "leave (with an empty input)",
+  "status.model": () => "model",
+  "status.context": () => "context",
+  "status.data": () => "data",
+  "status.sync": () => "sync",
+  "status.session": () => "session",
+  "status.version": () => "version",
+  "status.language": () => "language",
+  "language.choose": () => "Which language?",
+  "language.name": ({ locale }: { locale: Locale }) =>
+    ({ en: "English", "zh-TW": "繁體中文（台灣）" })[locale],
+  "language.saved": ({ name }: { name: string }) =>
+    `Using ${name} from now on, in this session and new ones.`,
+  "language.namedElsewhere": ({ where }: { where: string }) =>
+    `${where} sets the language while it is set; the choice is saved for when it is not.`,
+  "config.badLanguage": ({ where, locales }: { where: string; locales: string }) =>
+    `${where}: language must be one of ${locales}`,
   "cli.unknownCommand": ({ command }: { command: string }) => `Unknown command: ${command}`,
   "cli.sayChatgpt": ({ app, command }: { app: string; command: string }) =>
     `Usage: ${app} ${command} chatgpt`,
@@ -118,6 +171,7 @@ const catalog = {
   Tauric's AI and data          ${app} key tauric
                                 ${getOne()}
   Your ChatGPT plan             ${app} login chatgpt
+  Claude Code on this computer  choose Claude Code in /login (claude installed and signed in)
   An API key                    ${app} key ${providers.join("|")},
                                 or its variable in the environment, such as OPENAI_API_KEY
   An OpenAI-compatible server   set ${baseUrlVar} and ${modelVar} (the model as the server names it),
@@ -245,6 +299,8 @@ event odds from Polymarket; the rest is not available.
   "setup.chooseModel": () => "Which model?",
   "setup.chooseReasoning": () => "How hard should it reason?",
   "setup.about.chatgpt": () => "sign in with your ChatGPT account and use your plan",
+  "setup.about.claude-code": () =>
+    "through the Claude Code (claude CLI) signed in on this computer, for personal use",
   "setup.about.openai": () => "an API key from platform.openai.com",
   "setup.about.anthropic": () => "an API key from console.anthropic.com",
   "setup.about.google": () => "an API key from aistudio.google.com",
@@ -261,6 +317,7 @@ event odds from Polymarket; the rest is not available.
   "setup.connect": () => "Connect",
   "setup.context": ({ tokens: count }: { tokens: number }) => `${tokens(count)} context`,
   "setup.cost": ({ input, output }: { input: number; output: number }) => `$${input}/$${output} per M tokens`,
+  "setup.subscription": () => "subscription usage",
   "setup.levels": ({ least, most }: { least: string; most: string }) =>
     least === most ? `reasoning ${least}` : `reasoning ${least} to ${most}`,
   "setup.providerDefault": () => "default",
@@ -295,6 +352,12 @@ event odds from Polymarket; the rest is not available.
     `${where} names the model for new sessions while it is set.`,
   "setup.modelSaved": ({ model }: { model: string }) =>
     `Using ${model} from the next question, in this session and new ones.`,
+  "setup.claudeCodeMissing": ({ command }: { command: string }) =>
+    `Claude Code (${command}) was not found. Install it and sign in with claude, or set TRADINGAGENTS_CLAUDE_PATH.`,
+  "setup.claudeCodeSignedOut": () =>
+    "Claude Code is not signed in. Run claude in a terminal, sign in, then try again.",
+  "setup.claudeCodeReady": ({ version }: { version: string }) =>
+    `Found Claude Code ${version}; its sign-in on this computer is used.`,
   // A setup step's key row, its fields joined by the separator.
   "form.pickHint": ({
     separator,
@@ -356,7 +419,7 @@ event odds from Polymarket; the rest is not available.
   /** Which retry of a model step is pending, as the status row and an agent's row say it. */
   "app.retryOf": ({ attempt, of }: { attempt: number; of: number }) => `retry ${attempt} of ${of}`,
   /** Said after a long think, by how long it has gone on. */
-  "app.thinkingLong": ({ seconds }: { seconds: number }) =>
+  "app.thinkingLong": ({ seconds }: { seconds: number }): string =>
     seconds >= 45
       ? "deep in thought"
       : seconds >= 30
@@ -627,6 +690,12 @@ event odds from Polymarket; the rest is not available.
     `The model sent nothing for ${duration(durationMs)}; the request was ended.`,
   "model.usageLimit": () =>
     "The ChatGPT plan's usage limit is reached; try again later or use another model.",
+  "model.claudeCodeMissing": ({ command }: { command: string }) =>
+    `Claude Code (${command}) was not found. Install Claude Code and sign in, or set TRADINGAGENTS_CLAUDE_PATH.`,
+  "model.claudeCodeSignedOut": () => "Claude Code is not signed in: run claude in a terminal and sign in.",
+  "model.claudeCodeLimit": ({ said }: { said: string }) =>
+    `The Claude subscription's usage limit is reached (${said}); try again later or use another model.`,
+  "model.claudeCodeFailed": ({ said }: { said: string }) => `Claude Code failed: ${said}`,
 
   // Settings and private files
   "config.emptyVariable": ({ name }: { name: string }) =>
@@ -828,56 +897,28 @@ event odds from Polymarket; the rest is not available.
     `${source} could not be reached or answered unreadably; this is not a fact about the market. ${detail}`,
 } satisfies Record<string, (params: never) => string>;
 
-/** Bytes as people say them: 1 GB, 1.5 GB, 512 MB. */
-export function formatBytes(bytes: number): string {
-  const units = ["bytes", "KB", "MB", "GB", "TB"];
-  let value = bytes;
-  let unit = 0;
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024;
-    unit++;
-  }
-  const shown =
-    Number.isInteger(value) || unit === 0 ? String(Math.round(value)) : value.toFixed(1).replace(/\.0$/, "");
-  return `${shown} ${units[unit]}`;
+/** The English table's shape, which every other language's table has too (same keys, same parameters). */
+export type MessageTable = typeof en;
+type MessageKey = keyof MessageTable;
+type Params<K extends MessageKey> = Parameters<MessageTable[K]>;
+
+const TABLES: Record<Locale, MessageTable> = { en, "zh-TW": zhTW };
+let current: Locale = "en";
+
+/** Read every message from now on in `locale`. */
+export function setLocale(locale: Locale): void {
+  current = locale;
 }
 
-/** A length of time as people read it: "41s", "8m 41s", "1h 2m". */
-function duration(ms: number): string {
-  const seconds = Math.round(ms / 1_000);
-  if (seconds < 60) return `${seconds}s`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ${String(seconds % 60).padStart(2, "0")}s`;
-  return `${Math.floor(minutes / 60)}h ${minutes % 60}m`;
+/** The language messages are read in now. */
+export function currentLocale(): Locale {
+  return current;
 }
 
-/** A token count as people read it: "850", "12.4k", "296k", "1.2M". */
-function tokens(count: number): string {
-  if (count < 1_000) return String(count);
-  if (count < 100_000) return `${(count / 1_000).toFixed(1).replace(/\.0$/, "")}k`;
-  if (count < 1_000_000) return `${Math.round(count / 1_000)}k`;
-  return `${(count / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
-}
-
-type MessageKey = keyof typeof catalog;
-type Params<K extends MessageKey> = Parameters<(typeof catalog)[K]>;
-
-/** The text for `key`, with its parameters. */
+/** The text for `key`, with its parameters, in the current language. */
 export function message<K extends MessageKey>(key: K, ...params: Params<K>): string {
-  return (catalog[key] as (...args: Params<K>) => string)(...params);
+  return (TABLES[current][key] as (...args: Params<K>) => string)(...params);
 }
-
-/** Each provider as people see it named. */
-export const PROVIDER_LABELS = {
-  tauric: "Tauric",
-  chatgpt: "ChatGPT plan",
-  openai: "OpenAI",
-  anthropic: "Anthropic",
-  google: "Google",
-  deepseek: "DeepSeek",
-  openrouter: "OpenRouter",
-  "openai-compatible": "OpenAI-compatible server",
-} as const;
 
 /** How a stored key is named when asked for: its provider's name, or the model server's. */
 function keyLabel(name: string): string {
@@ -901,9 +942,8 @@ function usage(app: string): string {
     ["--reasoning level", "how hard the model reasons this run: none to max"],
     ["login chatgpt", "use your ChatGPT plan's models (prints an address to open)"],
     ["logout chatgpt", "sign out of ChatGPT"],
+    ["--lang en|zh-TW", "read the application in this language this run"],
     ["update", "update to the newest release"],
   ];
-  const width = Math.max(...commands.map(([command]) => `${app} ${command}`.trimEnd().length)) + 2;
-  const lines = commands.map(([command, what]) => `  ${`${app} ${command}`.trimEnd().padEnd(width)}${what}`);
-  return ["Usage:", ...lines, `  ${app} --version`].join("\n");
+  return commandTable(app, "Usage:", commands);
 }

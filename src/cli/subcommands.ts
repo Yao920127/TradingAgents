@@ -19,7 +19,7 @@ import {
 import { APP_NAME, errorText, type HostedProvider, message, VERSION } from "../contracts/index.js";
 import { allSessions, chatgptAuth, deleteSession, SessionError, tauricSessions } from "../engine/index.js";
 import { EXIT } from "../headless/run.js";
-import { EXIT_USAGE, USAGE } from "./args.js";
+import { EXIT_USAGE, usageText } from "./args.js";
 import { homePath, print, toErr, toOut } from "./output.js";
 import { hiddenLines, InputCancelledError, readHidden, readPiped } from "./secret.js";
 import { selfUpdate, updateReport } from "./self-update.js";
@@ -99,7 +99,7 @@ export async function sync(choice: string | undefined, paths: Paths): Promise<nu
       `${message("sync.status", { state })}\n\n${message("sync.sends")}\n\n${message("sync.turnItWith", { app: APP_NAME, to: settings.sync ? "off" : "on" })}`,
     );
   }
-  toErr(`${message("sync.sayWhich", { app: APP_NAME })}\n\n${USAGE}\n`);
+  toErr(`${message("sync.sayWhich", { app: APP_NAME })}\n\n${usageText()}\n`);
   return EXIT_USAGE;
 }
 
@@ -137,7 +137,7 @@ export async function deleteCommand(id: string | undefined, yes: boolean, paths:
 
 export async function sessions(extra: string | undefined, paths: Paths): Promise<number> {
   if (extra !== undefined) {
-    toErr(`${message("cli.unexpectedArgument", { argument: extra })}\n\n${USAGE}\n`);
+    toErr(`${message("cli.unexpectedArgument", { argument: extra })}\n\n${usageText()}\n`);
     return EXIT_USAGE;
   }
   const settings = await loadSettings(process.env, { paths });

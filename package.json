@@ -17,6 +17,7 @@
   "scripts": {
     "ci:install": "npm ci --ignore-scripts && node node_modules/bun/install.js",
     "build": "tsc -p tsconfig.build.json",
+    "test": "npm run build && node --test test/",
     "compile": "npm run build && bun scripts/compile.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p scripts/tsconfig.json",
     "lint": "biome check .",

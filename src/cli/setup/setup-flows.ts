@@ -29,6 +29,8 @@ import type { PickerOption } from "../form/picker-state.js";
 export type SetupFacts = {
   /** Whether a ChatGPT sign-in that may use the plan is there. */
   signedIn: boolean;
+  /** Whether Claude Code was found signed in on this computer during this setup. */
+  claudeCodeReady?: boolean;
   /** Where each key already found came from: its environment variable, or "stored". */
   keyFrom: Partial<Record<HostedProvider, string>>;
   /** The providers that can be used now (a key found, or a server with its model). */
@@ -53,6 +55,8 @@ export type SetupActions = {
   signIn?(): Promise<boolean>;
   /** The models the ChatGPT plan offers. */
   planModels(): Promise<{ id: string; name: string }[]>;
+  /** Whether Claude Code is found and signed in here, and what to say about it. */
+  checkClaudeCode(): Promise<{ ready: boolean; said: string }>;
 };
 
 /** A step: what comes next, BACK, or the lines a finished setup says. `skip` comes next but is left out on the way back. */
@@ -89,6 +93,7 @@ function isReady(facts: SetupFacts, provider: ProviderId): boolean {
   // The session runs on it, whatever named it.
   if (facts.current?.provider === provider) return true;
   if (provider === "chatgpt") return facts.signedIn;
+  if (provider === "claude-code") return facts.claudeCodeReady === true;
   if (isHosted(provider)) return facts.keyFrom[provider] !== undefined;
   return facts.connected.includes(provider) && facts.serverModel !== undefined;
 }
@@ -130,7 +135,12 @@ function modelOption(
   const isCurrent = current?.provider === provider && current.model === model.id;
   const detail = [
     model.context ? message("setup.context", { tokens: model.context }) : "",
-    model.cost ? message("setup.cost", model.cost) : "",
+    // Claude Code's models are paid for by the subscription, not by the token.
+    provider === "claude-code"
+      ? message("setup.subscription")
+      : model.cost
+        ? message("setup.cost", model.cost)
+        : "",
     model.reasoning?.length
       ? message("setup.levels", {
           least: model.reasoning[0] as string,
@@ -318,6 +328,21 @@ function serverSteps(ui: FormUI, actions: SetupActions, then: (model: string) =>
   return address;
 }
 
+/**
+ * Check Claude Code before its models are offered: `then` when it is found signed in (marked ready in `known`
+ * for the rest of the setup), else the setup ends saying what to do.
+ */
+async function claudeCodeStep(
+  actions: SetupActions,
+  known: SetupFacts,
+  then: Step,
+): Promise<{ skip: Step } | { done: string[] }> {
+  const { ready, said } = await actions.checkClaudeCode();
+  if (!ready) return { done: [said] };
+  known.claudeCodeReady = true;
+  return { skip: then };
+}
+
 export function firstRun(ui: FormUI, facts: SetupFacts, actions: SetupActions): Promise<string[]> {
   // What is known, with the keys saved on the way.
   const known: SetupFacts = { ...facts, keyFrom: { ...facts.keyFrom } };
@@ -330,6 +355,7 @@ export function firstRun(ui: FormUI, facts: SetupFacts, actions: SetupActions): 
     (provider: ProviderId): Step =>
     async () => {
       const models = modelSteps(ui, facts, actions, provider, () => tauric);
+      if (provider === "claude-code") return claudeCodeStep(actions, known, models);
       if (provider === "chatgpt") {
         if (facts.signedIn) return { skip: models };
         // Signing in goes to the browser and back: on the way back, the step before it.
@@ -391,6 +417,14 @@ export function loginFlow(ui: FormUI, facts: SetupFacts, actions: SetupActions):
         ? { done: [message("setup.connected", { provider: PROVIDER_LABELS.chatgpt })] }
         : provider;
     }
+    if (chosen === "claude-code") {
+      const { ready, said } = await actions.checkClaudeCode();
+      return {
+        done: ready
+          ? [said, message("setup.connected", { provider: PROVIDER_LABELS["claude-code"] })]
+          : [said],
+      };
+    }
     if (chosen === "openai-compatible") {
       return {
         skip: serverSteps(ui, actions, (model) => async () => ({
@@ -433,6 +467,7 @@ export function modelFlow(ui: FormUI, facts: SetupFacts, actions: SetupActions):
     async () => {
       const models = modelSteps(ui, known, actions, provider, saved);
       if (isReady(known, provider)) return { skip: models };
+      if (provider === "claude-code") return claudeCodeStep(actions, known, models);
       if (provider === "chatgpt") {
         if (!actions.signIn) return { done: [message("setup.signInElsewhere", { app: APP_NAME })] };
         return (await actions.signIn()) ? { skip: models } : BACK;
