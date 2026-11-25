@@ -14,6 +14,7 @@ import providerFacts from "./provider-facts.json" with { type: "json" };
 export const CATALOG_PROVIDERS = [
   "tauric",
   "chatgpt",
+  "claude-code",
   "openai",
   "anthropic",
   "google",
@@ -33,6 +34,13 @@ export const CATALOG: { readonly [P in CatalogProvider]: readonly { id: string; 
     { id: "gpt-6.2-astra", role: "alt" },
     { id: "gpt-6.1-terra", role: "alt" },
     { id: "gpt-6-luna", role: "fast" },
+  ],
+  // The models a Claude subscription offers through Claude Code.
+  "claude-code": [
+    { id: "claude-sonnet-5-5", role: "default" },
+    { id: "claude-opus-5-5", role: "alt" },
+    { id: "claude-fable-5-2", role: "alt" },
+    { id: "claude-haiku-5-5", role: "fast" },
   ],
   openai: [
     { id: "gpt-6.2-sol", role: "default" },
@@ -68,6 +76,7 @@ export const CATALOG: { readonly [P in CatalogProvider]: readonly { id: string; 
 export const METADATA_SOURCE: { readonly [P in CatalogProvider]: string } = {
   tauric: "tauric",
   chatgpt: "openai",
+  "claude-code": "anthropic",
   openai: "openai",
   anthropic: "anthropic",
   google: "google",

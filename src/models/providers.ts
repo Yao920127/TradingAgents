@@ -10,6 +10,7 @@ import { REQUEST_MS } from "../contracts/limits.js";
 import { type CatalogProvider, modelInfo } from "./catalog.js";
 import { chatgptClient, chatgptReplayKey } from "./chatgpt.js";
 import { ChatGPTAuth } from "./chatgpt-auth.js";
+import { claudeCodeClient, claudeCodeReplayKey } from "./claude-code.js";
 import { hostedClient, hostedReplayKey } from "./hosted.js";
 import { compatibleReplayKey, openAICompatibleClient, serverContextWindow } from "./openai-compatible.js";
 import { scrubbingSecrets } from "./scrub.js";
@@ -75,6 +76,22 @@ const chatgpt: ProviderDefinition<Extract<ModelRoute, { provider: "chatgpt" }>> 
   limits: (route) => catalogLimits("chatgpt", route.model),
 };
 
+const claudeCode: ProviderDefinition<Extract<ModelRoute, { provider: "claude-code" }>> = {
+  client: (route, deps) =>
+    claudeCodeClient({
+      model: route.model,
+      ...(route.reasoning ? { reasoning: route.reasoning } : {}),
+      ...(deps.stallMs !== undefined ? { stallMs: deps.stallMs } : {}),
+    }),
+  replayKey: (route) => claudeCodeReplayKey(route.model),
+  // Claude Code runs Anthropic's models: their windows are the catalog's.
+  reportedWindow: async (route) => modelInfo("claude-code", route.model)?.context,
+  windowFromPlan: false,
+  // Claude Code takes no sampling; its effort is set from the reasoning level.
+  sampling: () => ({ thinking: {}, plain: {}, canSkipThinking: false }),
+  limits: (route) => catalogLimits("claude-code", route.model),
+};
+
 const openAICompatible: ProviderDefinition<Extract<ModelRoute, { provider: "openai-compatible" }>> = {
   client: (route, deps) =>
     openAICompatibleClient({
@@ -113,7 +130,7 @@ const hosted: ProviderDefinition<Extract<ModelRoute, { apiKey: string; provider:
   sampling: () => ({ thinking: {}, plain: {}, canSkipThinking: true }),
   limits: (route) => catalogLimits(route.provider, route.model),
 };
-type HostedProviderId = Exclude<ModelRoute["provider"], "chatgpt" | "openai-compatible">;
+type HostedProviderId = Exclude<ModelRoute["provider"], "chatgpt" | "claude-code" | "openai-compatible">;
 
 /** The provider serving one route, its operations bound to that route. */
 type Provider = {
@@ -133,6 +150,8 @@ export function providerOf(route: ModelRoute): Provider {
   switch (route.provider) {
     case "chatgpt":
       return bound(chatgpt, route);
+    case "claude-code":
+      return bound(claudeCode, route);
     case "openai-compatible":
       return bound(openAICompatible, route);
     default:

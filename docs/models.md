@@ -1,6 +1,6 @@
 # Models
 
-TradingAgents runs on the model you choose: Tauric's, a ChatGPT plan, a hosted API with your key, or any server with an OpenAI-style API.
+TradingAgents runs on the model you choose: Tauric's, a ChatGPT plan, Claude Code signed in on your computer, a hosted API with your key, or any server with an OpenAI-style API.
 
 The first session in a terminal with no model set walks through the choice. Later, `/login` connects another provider (a ChatGPT plan signs in from the terminal with `tradingagents login chatgpt`) and `/model` chooses the model and how hard it reasons, from the next question in this session and in new ones. A resumed session runs on the model it ran on, when that can still be used.
 
@@ -10,6 +10,7 @@ The first session in a terminal with no model set walks through the choice. Late
 | ------------------------ | ----------------------------------------------------------- | -------------------------------------------------------------------- |
 | Tauric                   | a Tauric API key, the same key that serves the data         | `TAURIC_API_KEY`                                                     |
 | ChatGPT plan             | `tradingagents login chatgpt`, or the first session's setup |                                                                      |
+| Claude Code              | `claude` installed and signed in; choose it in `/login`     |                                                                      |
 | OpenAI                   | an API key                                                  | `OPENAI_API_KEY`                                                     |
 | Anthropic                | an API key                                                  | `ANTHROPIC_API_KEY`                                                  |
 | Google                   | an API key from AI Studio                                   | `GEMINI_API_KEY`, `GOOGLE_GENERATIVE_AI_API_KEY` or `GOOGLE_API_KEY` |
@@ -22,6 +23,20 @@ A key in the environment is used over a stored one. `tradingagents key <provider
 A ChatGPT sign-in prints an address to open in a browser, and is kept in `chatgpt-auth.json` in the [configuration directory](configuration.md); `tradingagents logout chatgpt` signs out. Questions count toward the plan's usage limits.
 
 DeepSeek needs the model's earlier reasoning sent back with every request, so sessions on a DeepSeek model keep that reasoning, in synced copies too.
+
+## Claude Code on your computer
+
+The `claude-code` provider runs each model step through the `claude` command signed in on your computer, so questions use your own Claude Code and count toward its usage limits. It offers `claude-sonnet-5-5` (the default), `claude-opus-5-5`, `claude-fable-5-2` and `claude-haiku-5-5`:
+
+```bash
+tradingagents --model claude-code/claude-opus-5-5 --reasoning high
+```
+
+It is for your own use on your own computer: TradingAgents never reads or keeps Claude Code's sign-in, it starts `claude` as you would. Anthropic does not allow third-party products to offer claude.ai sign-in or subscription limits, so this provider must not be offered to others or shipped in a release.
+
+Each step starts `claude -p` with the agent's own system prompt, none of Claude Code's tools, none of your Claude Code settings, hooks or MCP servers, and TradingAgents' tools listed through a small MCP server that never runs them: when the model calls a tool, the step ends and TradingAgents runs it, as for any other provider. `--reasoning` sets Claude Code's `--effort` (`none` and `minimal` become `low`). `TRADINGAGENTS_CLAUDE_PATH` names the `claude` executable when it is not on your `PATH`.
+
+What it costs compared with an API key: every step sends the whole conversation again (the prompt cache serves most of it), each step starts a process, and the model's reasoning is not carried from one step to the next.
 
 ## Choosing for one run
 

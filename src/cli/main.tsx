@@ -47,6 +47,7 @@ import {
   tauricSessions,
 } from "../engine/index.js";
 import { EXIT, runHeadless } from "../headless/run.js";
+import { runToolServer, TOOL_SERVER_COMMAND } from "../models/claude-code-tools.js";
 import { type Args, EXIT_USAGE, misuseOf, parse, usageText } from "./args.js";
 import type { ChatControls } from "./ChatApp.js";
 import { FlowCancelledError } from "./form/form-ui.js";
@@ -105,6 +106,8 @@ async function main(argv: string[]): Promise<number> {
     return EXIT_USAGE;
   }
   const { values, positionals } = parsed;
+  // Claude Code starting this program as the MCP server that lists the tools of a step (claude-code.ts).
+  if (positionals[0] === TOOL_SERVER_COMMAND && positionals[1]) return runToolServer(positionals[1]);
   // The language comes first, so everything printed from here on is in it.
   const language = chooseLanguage(values.lang);
   if (language === EXIT_USAGE) return EXIT_USAGE;

@@ -171,6 +171,7 @@ export const en = {
   Tauric's AI and data          ${app} key tauric
                                 ${getOne()}
   Your ChatGPT plan             ${app} login chatgpt
+  Claude Code on this computer  choose Claude Code in /login (claude installed and signed in)
   An API key                    ${app} key ${providers.join("|")},
                                 or its variable in the environment, such as OPENAI_API_KEY
   An OpenAI-compatible server   set ${baseUrlVar} and ${modelVar} (the model as the server names it),
