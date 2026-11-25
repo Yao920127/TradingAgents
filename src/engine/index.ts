@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 export { BUILT_IN, type Catalog, loadCatalog } from "../agents/catalog.js";
-export { offeredLevels } from "../models/catalog.js";
+export { modelName, offeredLevels } from "../models/catalog.js";
 export {
   defaultModel,
   defaultOf,

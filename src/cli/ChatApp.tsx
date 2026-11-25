@@ -30,6 +30,7 @@ import {
 } from "../contracts/index.js";
 import { APP } from "../contracts/limits.js";
 import type { AskOptions, Deleted, SessionSummary, Turn } from "../engine/index.js";
+import { modelName } from "../engine/index.js";
 import { CommandMenu, menuHeight } from "./CommandMenu.js";
 import { Composer, composerHeight } from "./Composer.js";
 import { copyText } from "./clipboard.js";
@@ -225,7 +226,7 @@ export function ChatApp({
     const start = reduceTranscript(emptyTranscript, {
       type: "local.header",
       version: info.version,
-      model: info.model,
+      model: modelName(info.provider, info.model),
       keyed: info.tauricKey,
       news,
     });
@@ -1016,7 +1017,7 @@ export function ChatApp({
           state={state}
           columns={columns}
           mode={mode.current}
-          model={modelNow.current.model}
+          model={modelName(modelNow.current.provider, modelNow.current.model)}
           version={info.version}
         />
       )}

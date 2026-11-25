@@ -7,7 +7,16 @@
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { languageNamedBy, resolvePaths, saveLanguage, writeAtomic } from "../config/index.js";
-import { currentLocale, errorText, LOCALES, type Locale, message, setLocale } from "../contracts/index.js";
+import {
+  currentLocale,
+  errorText,
+  LOCALES,
+  type Locale,
+  message,
+  PROVIDER_LABELS,
+  setLocale,
+} from "../contracts/index.js";
+import { modelName } from "../engine/index.js";
 import { CHANGELOG } from "./changelog.generated.js";
 import type { Copied } from "./clipboard.js";
 import { BACK, type FormUI } from "./form/form-ui.js";
@@ -125,7 +134,10 @@ export const COMMANDS: readonly Command[] = [
     run(context) {
       const { info } = context;
       const rows: [string, string | undefined][] = [
-        [message("status.model"), `${info.model} (${info.provider})`],
+        [
+          message("status.model"),
+          `${modelName(info.provider, info.model)} (${(PROVIDER_LABELS as Record<string, string>)[info.provider] ?? info.provider})`,
+        ],
         [
           message("status.context"),
           info.contextWindow ? message("app.tokens", { count: info.contextWindow }) : undefined,
