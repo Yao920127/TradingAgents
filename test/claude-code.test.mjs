@@ -202,3 +202,29 @@ test("runs claude with no tools of its own, none of the user's settings, and the
   assert.equal(effortOf("xhigh"), "xhigh");
   assert.equal(effortOf("provider-default"), undefined);
 });
+
+test("offers every model Claude Code's /model lists, by the names people know them by", async () => {
+  const { modelsOf, modelName } = await import("../dist/engine/index.js");
+  const names = modelsOf("claude-code").map((model) => model.name);
+  assert.deepEqual(names, [
+    "Claude Sonnet 5.5",
+    "Claude Opus 5.5",
+    "Claude Fable 5.2",
+    "Claude Haiku 5.5",
+    "Claude Fable 5.1",
+    "Claude Sonnet 5",
+    "Claude Opus 5",
+    "Claude Fable 5",
+    "Claude Opus 4.8",
+    "Claude Opus 4.7",
+    "Claude Opus 4.6",
+    "Claude Sonnet 4.6",
+    "Claude Haiku 4.5",
+  ]);
+  for (const model of modelsOf("claude-code")) assert.ok(model.context, `${model.id} has a context window`);
+  assert.equal(modelName("claude-code", "claude-sonnet-5-5"), "Claude Sonnet 5.5");
+  assert.equal(modelName("anthropic", "claude-haiku-4-5"), "Claude Haiku 4.5");
+  // A name for an id whatever the provider, and the id itself for a model no catalog knows.
+  assert.equal(modelName("", "claude-opus-5-5"), "Claude Opus 5.5");
+  assert.equal(modelName("openai-compatible", "my-local-model"), "my-local-model");
+});

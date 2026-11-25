@@ -6,6 +6,7 @@
  * `/export pdf` sets it as a PDF (pdf.ts).
  */
 import { message, printable, sourceLine } from "../../contracts/index.js";
+import { modelName } from "../../engine/index.js";
 import type { Answered, Block } from "../transcript-state.js";
 import { type Part, type Run, reportParts } from "./layout.js";
 
@@ -46,7 +47,7 @@ export function lastReport(
     question: printable((asked ?? last).question).trim(),
     added: added.map((turn) => printable(turn.question).trim()).filter(Boolean),
     at: last.at,
-    model: printable(last.model ?? model),
+    model: printable(modelName("", last.model ?? model)),
     version: printable(version),
     parts: titled ? rest : parts,
     sources: last.sources.map((source) => printable(sourceLine(source))),

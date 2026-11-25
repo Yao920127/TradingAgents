@@ -35,12 +35,21 @@ export const CATALOG: { readonly [P in CatalogProvider]: readonly { id: string; 
     { id: "gpt-6.1-terra", role: "alt" },
     { id: "gpt-6-luna", role: "fast" },
   ],
-  // The models a Claude subscription offers through Claude Code.
+  // The models Claude Code offers a Claude subscription (its /model list): the current ones, then earlier ones.
   "claude-code": [
     { id: "claude-sonnet-5-5", role: "default" },
     { id: "claude-opus-5-5", role: "alt" },
     { id: "claude-fable-5-2", role: "alt" },
     { id: "claude-haiku-5-5", role: "fast" },
+    { id: "claude-fable-5-1", role: "alt" },
+    { id: "claude-sonnet-5", role: "alt" },
+    { id: "claude-opus-5", role: "alt" },
+    { id: "claude-fable-5", role: "alt" },
+    { id: "claude-opus-4-8", role: "alt" },
+    { id: "claude-opus-4-7", role: "alt" },
+    { id: "claude-opus-4-6", role: "alt" },
+    { id: "claude-sonnet-4-6", role: "alt" },
+    { id: "claude-haiku-4-5", role: "alt" },
   ],
   openai: [
     { id: "gpt-6.2-sol", role: "default" },
@@ -115,6 +124,22 @@ const INFO: { readonly [model: string]: ModelInfo } = {
 /** The catalog's facts about `provider`'s model `id`, if it lists it. */
 export function modelInfo(provider: CatalogProvider, id: string): ModelInfo | undefined {
   return INFO[`${METADATA_SOURCE[provider]}/${id}`];
+}
+
+/**
+ * A model as people see it named: the catalog's name for `provider`'s model `id` ("Claude Sonnet 5.5"), else
+ * the name any provider's catalog gives that id, else the id itself (a server's own model, say).
+ */
+export function modelName(provider: string, id: string): string {
+  if ((CATALOG_PROVIDERS as readonly string[]).includes(provider))
+    return modelInfo(provider as CatalogProvider, id)?.name ?? anyName(id) ?? id;
+  return anyName(id) ?? id;
+}
+
+/** The name the catalog gives `id` under any provider's metadata, if any. */
+function anyName(id: string): string | undefined {
+  for (const [key, info] of Object.entries(INFO)) if (key.endsWith(`/${id}`)) return info.name;
+  return undefined;
 }
 
 /** The levels the catalog lists for `provider`'s model `id`, least first (a list may come in any order, with unknown names). */

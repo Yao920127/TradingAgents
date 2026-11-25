@@ -20,7 +20,7 @@ import {
   type ReasoningLevel,
   type RouteName,
 } from "../../contracts/index.js";
-import { type ModelOption, modelsOf, offeredLevels, RECOMMENDED } from "../../engine/index.js";
+import { type ModelOption, modelName, modelsOf, offeredLevels, RECOMMENDED } from "../../engine/index.js";
 import type { FieldBuffer } from "../form/field-state.js";
 import { BACK, FlowCancelledError, type FormUI } from "../form/form-ui.js";
 import type { PickerOption } from "../form/picker-state.js";
@@ -465,7 +465,8 @@ export function modelFlow(ui: FormUI, facts: SetupFacts, actions: SetupActions):
   const connect =
     (provider: ProviderId): Step =>
     async () => {
-      const models = modelSteps(ui, known, actions, provider, saved);
+      // Said by the name people know it by ("Claude Sonnet 5.5"); the id is what is saved.
+      const models = modelSteps(ui, known, actions, provider, (model) => saved(modelName(provider, model)));
       if (isReady(known, provider)) return { skip: models };
       if (provider === "claude-code") return claudeCodeStep(actions, known, models);
       if (provider === "chatgpt") {
