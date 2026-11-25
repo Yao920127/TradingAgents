@@ -7,6 +7,12 @@
  */
 import { APP_NAME } from "../contracts/index.js";
 
+/**
+ * Whether this is a build of one's own source (`npm run install:local`), which no release replaces: it does
+ * not look for newer releases, and `update` says to build again instead. The compile step writes it in.
+ */
+export const LOCAL_BUILD = process.env.TRADINGAGENTS_LOCAL_BUILD === "1";
+
 /** The public repository. */
 export const REPOSITORY_URL = "https://github.com/TauricResearch/TradingAgents";
 

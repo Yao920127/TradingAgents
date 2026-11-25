@@ -10,6 +10,7 @@ import {
   type CredentialName,
   ENV,
   KEY_VARS,
+  LOCAL_BUILD,
   loadSettings,
   type Paths,
   saveCredential,
@@ -191,6 +192,8 @@ export async function storeKey(name: string | undefined, paths: Paths): Promise<
 
 /** Replace this executable with the newest release (see self-update.ts). */
 export async function update(paths: Paths): Promise<number> {
+  // A release would replace this build of one's own source with the original's.
+  if (LOCAL_BUILD) return print(message("update.localBuild"));
   const report = await updateReport(() =>
     selfUpdate({
       execPath: process.execPath,

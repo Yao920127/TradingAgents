@@ -33,6 +33,17 @@ If `~/.local/bin` is not on your `PATH` yet, add it in your shell's profile.
 
 On macOS, a file downloaded in a browser may have to be allowed the first time: under System Settings > Privacy & Security, or with `xattr -d com.apple.quarantine <file>`.
 
+## From your own source
+
+To run a checkout of your own (with your changes, or features meant only for you, such as the `claude-code` provider), build and install it in one step:
+
+```bash
+git clone <your repository> && cd TradingAgents
+npm run install:local
+```
+
+It needs Node.js 22 or newer, installs the build's dependencies the first time, and puts the executable in `~/.local/bin/tradingagents` (`TRADINGAGENTS_INSTALL_DIR` chooses another folder), keeping the one there before as `tradingagents.previous`. Such a build does not look for releases, which would replace it with the original: to update it, `git pull` and run `npm run install:local` again.
+
 ## Updates
 
 A session in the terminal checks for a newer release at most once a day, in the background. At the next start it asks whether to update now, skip, or skip until a newer release than that one is out; updating runs `tradingagents update` (or npm's command for an npm install), and the new version runs from the following start. A copy installed another way is told what to run instead. The check is a plain request for the latest release: no identifier, and nothing about your questions. `TRADINGAGENTS_NO_UPDATE_CHECK=1` turns it off. Nothing is installed without you asking, and `-p` never asks.

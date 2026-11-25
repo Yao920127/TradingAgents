@@ -7,7 +7,7 @@
 import { promises as fs, readFileSync } from "node:fs";
 import { dirname } from "node:path";
 import semver from "semver";
-import { ENV, RELEASE_URL, writeAtomic } from "../config/index.js";
+import { ENV, LOCAL_BUILD, RELEASE_URL, writeAtomic } from "../config/index.js";
 import { message } from "../contracts/index.js";
 import { REQUEST_MS, UPDATES } from "../contracts/limits.js";
 
@@ -19,7 +19,8 @@ export type UpdateSource = { url: string; latest(signal: AbortSignal): Promise<s
 
 /** The source to use: the public repository's latest release; none when opted out. */
 export function updateSource(env: NodeJS.ProcessEnv = process.env): UpdateSource | undefined {
-  if (env[ENV.noUpdateCheck]) return undefined;
+  // A build of one's own source is not replaced by a release, so none is looked for.
+  if (env[ENV.noUpdateCheck] || LOCAL_BUILD) return undefined;
   const lookup = releaseLookup();
   return lookup ? githubLatest(lookup.url, lookup.asset) : undefined;
 }

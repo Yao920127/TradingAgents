@@ -37,6 +37,7 @@ export {
 } from "./paths.js";
 export {
   INSTALL_COMMAND,
+  LOCAL_BUILD,
   NPM_PACKAGE,
   NPM_PLATFORM_PREFIX,
   NPM_UPDATE_COMMAND,

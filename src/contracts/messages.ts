@@ -130,6 +130,8 @@ export const en = {
     `SHA256SUMS has no single checksum for ${name}; nothing was changed.`,
   "update.wontStart": () => "The new version did not start on this system; nothing was changed.",
   "update.failed": ({ reason }: { reason: string }) => `The update failed: ${reason}`,
+  "update.localBuild": () =>
+    "This copy was built from your own source, so a release does not replace it. To update it, run git pull and then npm run install:local in the source folder.",
   "cli.noSessions": () => "No sessions yet.",
   "cli.nameTheSession": ({ app }: { app: string }) =>
     `Name the session to delete: ${app} sessions delete <id>`,

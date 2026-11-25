@@ -144,6 +144,8 @@ export const zhTW: MessageTable = {
   "update.noChecksum": ({ name }) => `SHA256SUMS 中沒有 ${name} 唯一的檢查碼；沒有任何變更。`,
   "update.wontStart": () => "新版本無法在此系統上啟動；沒有任何變更。",
   "update.failed": ({ reason }) => `更新失敗：${reason}`,
+  "update.localBuild": () =>
+    "這份副本是從你自己的原始碼建置的，不會被正式版取代。要更新時，請到原始碼資料夾執行 git pull，再執行 npm run install:local。",
   "cli.noSessions": () => "目前還沒有工作階段。",
   "cli.nameTheSession": ({ app }) => `請指定要刪除的工作階段：${app} sessions delete <id>`,
   "cli.deleteNeedsYes": () => "沒有終端機可以確認時，刪除需要加上 --yes。",

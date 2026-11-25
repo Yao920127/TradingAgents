@@ -19,6 +19,7 @@
     "build": "tsc -p tsconfig.build.json",
     "test": "npm run build && node --test test/",
     "compile": "npm run build && bun scripts/compile.ts",
+    "install:local": "sh scripts/install-local.sh",
     "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p scripts/tsconfig.json",
     "lint": "biome check .",
     "format": "biome format --write ."

@@ -26,7 +26,13 @@ const result = await Bun.build({
   entrypoints: ["dist/cli/main.js"],
   minify: true,
   // React's production build: its development build checks and warns as it renders.
-  define: { "process.env.NODE_ENV": '"production"' },
+  define: {
+    "process.env.NODE_ENV": '"production"',
+    // A build of one's own source (install-local.sh) does not look for releases to replace it.
+    ...(process.env.TRADINGAGENTS_LOCAL_BUILD === "1"
+      ? { "process.env.TRADINGAGENTS_LOCAL_BUILD": '"1"' }
+      : {}),
+  },
   plugins: [
     {
       name: "no-react-devtools",
