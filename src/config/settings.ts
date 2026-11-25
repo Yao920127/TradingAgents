@@ -449,6 +449,11 @@ export function checkEndpoint(value: string): string | undefined {
   return undefined;
 }
 
+/** Read the application in `locale` from now on, saved in the config file with its other settings. */
+export function saveLanguage(locale: string, paths: Paths): Promise<string> {
+  return rewriteConfig(paths, (current) => ({ ...current, language: locale }));
+}
+
 /** Turn session sync on or off in the config file, keeping its other settings. */
 export function saveSync(on: boolean, paths: Paths): Promise<string> {
   return rewriteConfig(paths, (current) => ({ ...current, sync: on ? "on" : "off" }));

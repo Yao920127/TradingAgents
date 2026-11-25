@@ -11,7 +11,7 @@ import { v7 } from "uuid";
 import type { AgentFile } from "../agents/agent-file.js";
 import { requestChars } from "../agents/budget.js";
 import { type AgentOutcome, type AgentSpec, cacheKeyOf, runAgent } from "../agents/index.js";
-import { ASKING, modeGuidance, NO_ONE_TO_ASK } from "../agents/prompts.js";
+import { ASKING, languageDirective, modeGuidance, NO_ONE_TO_ASK } from "../agents/prompts.js";
 import {
   APP_NAME,
   addUsage,
@@ -323,6 +323,8 @@ export class Engine {
         notes,
         calendar,
         modeGuidance(mode),
+        // Last, so the prompt before it stays the same whichever language is read.
+        languageDirective(),
       ]
         .filter(Boolean)
         .join("\n\n"),

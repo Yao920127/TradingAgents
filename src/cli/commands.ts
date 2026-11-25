@@ -6,8 +6,8 @@
  */
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
-import { writeAtomic } from "../config/index.js";
-import { errorText, message } from "../contracts/index.js";
+import { languageNamedBy, resolvePaths, saveLanguage, writeAtomic } from "../config/index.js";
+import { currentLocale, errorText, LOCALES, type Locale, message, setLocale } from "../contracts/index.js";
 import { CHANGELOG } from "./changelog.generated.js";
 import type { Copied } from "./clipboard.js";
 import { BACK, type FormUI } from "./form/form-ui.js";
@@ -83,21 +83,23 @@ export type Command = {
 };
 
 /** The keys, for `/help`. */
-const KEYS: [string, string][] = [
-  ["Enter", "send; on an empty input, send the next question queued"],
-  ["Shift+Enter", "a new line; also Alt+Enter, Ctrl+J, or \\ then Enter"],
-  ["Up, Down", "earlier questions"],
-  ["Ctrl+R", "search earlier questions"],
-  ["Shift+Tab", "switch mode: auto (the agent decides how to work) or plan (it proposes a plan first)"],
-  ["Esc", "stop the answer, or close a menu"],
-  ["Ctrl+C", "clear the input, stop the answer, or leave"],
-  ["Ctrl+D", "leave (with an empty input)"],
+const KEYS = (): [string, string][] => [
+  ["Enter", message("keys.enter")],
+  ["Shift+Enter", message("keys.newLine")],
+  ["Up, Down", message("keys.history")],
+  ["Ctrl+R", message("keys.search")],
+  ["Shift+Tab", message("keys.mode")],
+  ["Esc", message("keys.esc")],
+  ["Ctrl+C", message("keys.ctrlC")],
+  ["Ctrl+D", message("keys.ctrlD")],
 ];
 
 export const COMMANDS: readonly Command[] = [
   {
     name: "help",
-    summary: "commands and keys",
+    get summary() {
+      return message("cmd.help");
+    },
     whileRunning: true,
     run(context) {
       context.list(
@@ -107,7 +109,7 @@ export const COMMANDS: readonly Command[] = [
               heading: message("app.helpCommands"),
               rows: COMMANDS.map((command) => ({ name: `/${command.name}`, text: command.summary })),
             },
-            { heading: message("app.helpKeys"), rows: KEYS.map(([name, text]) => ({ name, text })) },
+            { heading: message("app.helpKeys"), rows: KEYS().map(([name, text]) => ({ name, text })) },
           ],
         },
         [REPO, SITE],
@@ -116,17 +118,23 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     name: "status",
-    summary: "model, data, sync and session",
+    get summary() {
+      return message("cmd.status");
+    },
     whileRunning: true,
     run(context) {
       const { info } = context;
       const rows: [string, string | undefined][] = [
-        ["model", `${info.model} (${info.provider})`],
-        ["context", info.contextWindow ? message("app.tokens", { count: info.contextWindow }) : undefined],
-        ["data", info.data],
-        ["sync", info.sync],
-        ["session", info.session],
-        ["version", info.version],
+        [message("status.model"), `${info.model} (${info.provider})`],
+        [
+          message("status.context"),
+          info.contextWindow ? message("app.tokens", { count: info.contextWindow }) : undefined,
+        ],
+        [message("status.data"), info.data],
+        [message("status.sync"), info.sync],
+        [message("status.language"), message("language.name", { locale: currentLocale() })],
+        [message("status.session"), info.session],
+        [message("status.version"), info.version],
       ];
       context.list({
         sections: [
@@ -140,7 +148,9 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     name: "new",
-    summary: "start a new session",
+    get summary() {
+      return message("cmd.new");
+    },
     whileRunning: false,
     run(context) {
       context.newSession();
@@ -148,7 +158,9 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     name: "resume",
-    summary: "resume an earlier session, here or in your Tauric account",
+    get summary() {
+      return message("cmd.resume");
+    },
     whileRunning: false,
     run(context) {
       context.resume();
@@ -156,7 +168,9 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     name: "model",
-    summary: "choose the model this session and new ones run on",
+    get summary() {
+      return message("cmd.model");
+    },
     whileRunning: false,
     run(context) {
       context.setup("model");
@@ -164,15 +178,29 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     name: "login",
-    summary: "connect a provider, or add a Tauric API key",
+    get summary() {
+      return message("cmd.login");
+    },
     whileRunning: false,
     run(context) {
       context.setup("login");
     },
   },
   {
+    name: "language",
+    get summary() {
+      return message("cmd.language");
+    },
+    whileRunning: true,
+    run(context) {
+      context.flow((ui) => languageFlow(context, ui));
+    },
+  },
+  {
     name: "agents",
-    summary: "the agents the main agent can ask",
+    get summary() {
+      return message("cmd.agents");
+    },
     whileRunning: true,
     run(context, args) {
       showCatalog(context, context.info.agents ?? [], args, "agent");
@@ -180,7 +208,9 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     name: "skills",
-    summary: "the skills the main agent can load",
+    get summary() {
+      return message("cmd.skills");
+    },
     whileRunning: true,
     run(context, args) {
       showCatalog(context, context.info.skills ?? [], args, "skill");
@@ -188,7 +218,9 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     name: "export",
-    summary: "save the last answer as a PDF report, the transcript as Markdown, or both",
+    get summary() {
+      return message("cmd.export");
+    },
     whileRunning: true,
     run(context, args) {
       // `pdf` or `md`, then the file as typed (its own spaces kept); a bare path is the transcript's.
@@ -202,7 +234,9 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     name: "copy",
-    summary: "copy the last answer to the clipboard",
+    get summary() {
+      return message("cmd.copy");
+    },
     whileRunning: true,
     run(context) {
       const answer = context.answer();
@@ -216,7 +250,9 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     name: "changelog",
-    summary: "what changed in this version",
+    get summary() {
+      return message("cmd.changelog");
+    },
     whileRunning: true,
     run(context) {
       const { version } = context.info;
@@ -233,13 +269,39 @@ export const COMMANDS: readonly Command[] = [
   },
   {
     name: "exit",
-    summary: "leave",
+    get summary() {
+      return message("cmd.exit");
+    },
     whileRunning: true,
     run(context) {
       context.exit();
     },
   },
 ];
+
+/** Choose the language, use it at once, and save it for new sessions. */
+async function languageFlow(context: CommandContext, ui: FormUI): Promise<void> {
+  const chosen = await ui.pick({
+    title: message("language.choose"),
+    options: LOCALES.map((locale) => ({ id: locale, label: message("language.name", { locale }) })),
+    start: currentLocale(),
+    esc: "close",
+  });
+  if (chosen === BACK) return;
+  const locale = chosen as Locale;
+  setLocale(locale);
+  const name = message("language.name", { locale });
+  try {
+    await saveLanguage(locale, resolvePaths());
+  } catch (error) {
+    return context.notice("error", message("app.setupFailed", { reason: errorText(error) }));
+  }
+  const elsewhere = languageNamedBy();
+  context.say([
+    message("language.saved", { name }),
+    ...(elsewhere ? [message("language.namedElsewhere", { where: elsewhere })] : []),
+  ]);
+}
 
 /** Where an export goes when no path is given: the working directory, named after the session. */
 function defaultPath(context: CommandContext, kind: "pdf" | "md"): string {

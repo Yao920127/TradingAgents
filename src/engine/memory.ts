@@ -9,7 +9,7 @@
 
 import { join } from "node:path";
 import { z } from "zod";
-import { LESSON_SYSTEM, lessonPrompt } from "../agents/prompts.js";
+import { LESSON_SYSTEM, lessonPrompt, withLanguage } from "../agents/prompts.js";
 import { complete } from "../agents/recovery.js";
 import { MEMORY_DIR } from "../config/index.js";
 import {
@@ -386,7 +386,7 @@ export class Memory {
       const reply = await complete(
         this.deps.client,
         {
-          system: LESSON_SYSTEM,
+          system: withLanguage(LESSON_SYSTEM),
           messages: [{ role: "user", text: prompt }],
           tools: [],
           maxOutputTokens: MEMORY.lessonTokens,

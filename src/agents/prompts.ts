@@ -8,11 +8,26 @@
  * on offer, the user's notes, the calendar) stays with the code that owns it.
  * Style: no em-dash and no middle dot.
  */
-import { type Mode, SIGN_UP_URL } from "../contracts/index.js";
+import { currentLocale, type Locale, type Mode, SIGN_UP_URL } from "../contracts/index.js";
 import { REFERENCE_EXAMPLES } from "../tools/references.js";
 
 /** How results are cited and derived from, for an agent that has the compute and evidence tools. */
 export const REFERENCES = `A recorded result starts with its id, such as [e7]. In your answer, cite the results a claim rests on by their ids in brackets right after it, such as [e7] or [e7, e12]. A figure you derive from results (a change, a ratio, an average, a correlation) is exact when calc or correlation works it out from references such as ${REFERENCE_EXAMPLES.column} or ${REFERENCE_EXAMPLES.value}; evidence shows a result again by its id. An id is given when its result comes back, so a call that reads a result by reference is made in a step after the one that fetches it.`;
+
+/**
+ * The language the user reads the application in, for every text written for them; nothing for English,
+ * which the prompts are written in, so an English run is told what it always was.
+ */
+export function languageDirective(locale: Locale = currentLocale()): string {
+  if (locale !== "zh-TW") return "";
+  return "Write everything meant for the user (answers, reports, summaries, questions, plans and notes) in Traditional Chinese as used in Taiwan (zh-TW, Taiwanese terms such as 殖利率, 本益比, 營收, 資料, 設定), never Simplified Chinese. Keep tickers, numbers, units, code, tool names, result ids such as [e7], and proper names as they are; a name with no common Chinese form stays in its original language.";
+}
+
+/** `system` with the language directive after it, when there is one. */
+export function withLanguage(system: string, locale: Locale = currentLocale()): string {
+  const directive = languageDirective(locale);
+  return directive ? `${system}\n\n${directive}` : system;
+}
 
 /** That data and other agents' reports are information, never instructions. */
 export const DATA_NOT_INSTRUCTIONS =

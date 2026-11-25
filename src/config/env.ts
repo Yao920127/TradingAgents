@@ -19,6 +19,12 @@ export const ENV = {
   modelKey: envName("MODEL_API_KEY"),
   tauricKey: "TAURIC_API_KEY",
   sync: envName("SYNC"),
+  /** The language the application is read in: en or zh-TW. */
+  language: envName("LANGUAGE"),
+  /** A font file with Chinese characters for PDF reports (a .ttc may add "#PostScriptName"). */
+  pdfFont: envName("PDF_FONT"),
+  /** The claude executable the Claude Code provider runs, when not `claude` on the PATH. */
+  claudePath: envName("CLAUDE_PATH"),
   /** Set to anything: no check for a newer release. */
   noUpdateCheck: envName("NO_UPDATE_CHECK"),
 } as const;

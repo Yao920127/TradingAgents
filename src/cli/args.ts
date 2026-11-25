@@ -7,7 +7,10 @@
 import { parseArgs } from "node:util";
 import { APP_NAME, message } from "../contracts/index.js";
 
-export const USAGE = message("cli.usage", { app: APP_NAME });
+/** The usage text, in the language chosen (read when shown, after the language is set). */
+export function usageText(): string {
+  return message("cli.usage", { app: APP_NAME });
+}
 
 /** Exit codes besides the headless run's own: wrong usage, missing settings. */
 export const EXIT_USAGE = 2;
@@ -28,6 +31,7 @@ export function parse(argv: string[]) {
       resume: { type: "string" },
       model: { type: "string" },
       reasoning: { type: "string" },
+      lang: { type: "string" },
       help: { type: "boolean", short: "h" },
       version: { type: "boolean", short: "v" },
     },

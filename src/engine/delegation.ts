@@ -12,7 +12,13 @@ import { z } from "zod";
 import type { AgentFile } from "../agents/agent-file.js";
 import type { CatalogEntry } from "../agents/catalog.js";
 import { type AgentOutcome, type AgentSpec, type Caps, cacheKeyOf, runAgent } from "../agents/index.js";
-import { AGENT_REPORT, briefWith, DATA_NOT_INSTRUCTIONS, REFERENCES } from "../agents/prompts.js";
+import {
+  AGENT_REPORT,
+  briefWith,
+  DATA_NOT_INSTRUCTIONS,
+  languageDirective,
+  REFERENCES,
+} from "../agents/prompts.js";
 import { readSkillFile, SKILL_PATH_CHARS } from "../agents/skill-dir.js";
 import type { SkillFile } from "../agents/skill-file.js";
 import {
@@ -209,7 +215,10 @@ export class TurnRuntime {
             DATA_NOT_INSTRUCTIONS,
             AGENT_REPORT,
             this.options.calendar,
-          ].join("\n\n"),
+            languageDirective(),
+          ]
+            .filter(Boolean)
+            .join("\n\n"),
           tools: [...agentFile.tools, ...this.options.core.map((tool) => tool.name)],
           caps: this.capsFor(agentFile),
           maxOutputTokens: this.options.limits.output.stepTokens,

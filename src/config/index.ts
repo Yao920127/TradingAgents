@@ -17,6 +17,14 @@ export {
   saveHistory,
   withQuestion,
 } from "./history.js";
+export {
+  type LanguageChoice,
+  languageNamedBy,
+  resolveLanguage,
+  setLanguageNamedBy,
+  systemLocale,
+  toLocale,
+} from "./language.js";
 export { type LimitsSettings, limitFlags, resolveLimits } from "./limits.js";
 export {
   CONFIG_FILE,
@@ -40,6 +48,7 @@ export {
   loadSettings,
   type Settings,
   saveCredential,
+  saveLanguage,
   saveModel,
   saveServer,
   saveSync,
