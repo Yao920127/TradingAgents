@@ -12,7 +12,11 @@
  *
  * Ink imports react-devtools-core only when DEV=true and the package is installed, but the bundler hoists
  * the import, so it resolves here to an empty module.
+ *
+ * unicode-properties (fontkit's, for PDF reports) reads its data.trie from beside itself under Node, a file
+ * the executable does not carry; its browser build holds the same data inline, so that one is bundled.
  */
+import { dirname, join } from "node:path";
 
 const outfile = process.argv[2] ?? "dist-bin/tradingagents";
 const target = process.argv[3] as Bun.Build.CompileTarget | undefined;
@@ -35,6 +39,16 @@ const result = await Bun.build({
           contents: "export default {};",
           loader: "js",
         }));
+      },
+    },
+    {
+      name: "unicode-properties-inline-trie",
+      setup(build) {
+        build.onResolve({ filter: /^#binary-trie$/ }, (args) =>
+          /[\\/]unicode-properties[\\/]/.test(args.importer)
+            ? { path: join(dirname(args.importer), "binaryTrie.browser.js") }
+            : undefined,
+        );
       },
     },
   ],
