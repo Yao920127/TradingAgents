@@ -85,10 +85,22 @@ export function effortOf(reasoning: ReasoningLevel | undefined): string | undefi
   }
 }
 
-/** How this program starts again as the tool server: the script it runs from, or its compiled self. */
+/**
+ * How this program starts again as the tool server: Node with the script it runs from, or the compiled
+ * executable alone. A compiled executable's own script is a path inside it (Bun's /$bunfs/ or B:/~BUN/), which
+ * reads as present from inside but is not an argument the executable takes.
+ */
+export function selfCommandFor(
+  execPath: string,
+  script: string | undefined,
+  exists: (path: string) => boolean = existsSync,
+): string[] {
+  const embedded = script !== undefined && /[\\/]\$bunfs[\\/]|~BUN[\\/]/.test(script);
+  return script && !embedded && exists(script) ? [execPath, script] : [execPath];
+}
+
 function selfCommand(): string[] {
-  const script = process.argv[1];
-  return script && existsSync(script) ? [process.execPath, script] : [process.execPath];
+  return selfCommandFor(process.execPath, process.argv[1]);
 }
 
 /** The `claude` arguments for one step. */
@@ -175,7 +187,8 @@ async function* step(
       effort: effortOf(options.reasoning),
       mcpConfig,
     });
-    yield* run(options.command, args, transcriptBlocks(request), options.stallMs, signal);
+    const parser = new ClaudeCodeStream({ expectsTools: offersTools });
+    yield* run(options.command, args, transcriptBlocks(request), options.stallMs, parser, signal);
   } finally {
     await rm(dir, { recursive: true, force: true }).catch(() => {});
   }
@@ -187,6 +200,7 @@ async function* run(
   args: string[],
   content: { type: "text"; text: string }[],
   stallMs: number,
+  parser: ClaudeCodeStream,
   signal?: AbortSignal,
 ): AsyncGenerator<ModelChunk> {
   let child: ChildProcess;
@@ -225,7 +239,6 @@ async function* run(
     }, stallMs);
   };
   wait();
-  const parser = new ClaudeCodeStream();
   try {
     if (child.stdout) {
       for await (const line of createInterface({ input: child.stdout })) {

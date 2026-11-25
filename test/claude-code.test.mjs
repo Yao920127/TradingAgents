@@ -228,3 +228,34 @@ test("offers every model Claude Code's /model lists, by the names people know th
   assert.equal(modelName("", "claude-opus-5-5"), "Claude Opus 5.5");
   assert.equal(modelName("openai-compatible", "my-local-model"), "my-local-model");
 });
+
+test("starts the tool server as the compiled executable alone, not with its embedded script", async () => {
+  const { selfCommandFor } = await import("../dist/models/claude-code.js");
+  const always = () => true;
+  assert.deepEqual(selfCommandFor("/usr/bin/node", "/repo/dist/cli/main.js", always), [
+    "/usr/bin/node",
+    "/repo/dist/cli/main.js",
+  ]);
+  // Bun's executable reads its own embedded script as present, but it is not an argument it takes.
+  assert.deepEqual(selfCommandFor("/bin/tradingagents", "/$bunfs/root/tradingagents", always), [
+    "/bin/tradingagents",
+  ]);
+  assert.deepEqual(selfCommandFor("C:\\ta.exe", "B:\\~BUN\\root\\ta.exe", always), ["C:\\ta.exe"]);
+  assert.deepEqual(
+    selfCommandFor("/bin/ta", "/gone.js", () => false),
+    ["/bin/ta"],
+  );
+});
+
+test("stops a step that offers tools when the tool server did not connect", () => {
+  const init = (status) =>
+    JSON.stringify({ type: "system", subtype: "init", mcp_servers: [{ name: "ta", status }], tools: [] });
+  const failed = new ClaudeCodeStream({ expectsTools: true });
+  const [chunk] = failed.push(init("failed"));
+  assert.equal(chunk.type, "error");
+  assert.match(chunk.error.message, /failed/);
+  assert.equal(failed.done, true);
+  assert.deepEqual(new ClaudeCodeStream({ expectsTools: true }).push(init("connected")), []);
+  // A step without tools does not need the server.
+  assert.deepEqual(new ClaudeCodeStream().push(init("failed")), []);
+});
