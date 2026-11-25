@@ -698,6 +698,8 @@ event odds from Polymarket; the rest is not available.
   "model.claudeCodeLimit": ({ said }: { said: string }) =>
     `The Claude subscription's usage limit is reached (${said}); try again later or use another model.`,
   "model.claudeCodeFailed": ({ said }: { said: string }) => `Claude Code failed: ${said}`,
+  "model.claudeCodeToolsFailed": ({ status }: { status: string }) =>
+    `Claude Code could not reach TradingAgents' tools (their server: ${status}), so the question was stopped rather than answered without data. Reinstall with npm run install:local, then ask again.`,
 
   // Settings and private files
   "config.emptyVariable": ({ name }: { name: string }) =>

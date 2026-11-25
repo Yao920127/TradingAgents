@@ -75,6 +75,12 @@ export class ClaudeCodeStream {
   private stopReason: string | undefined;
   private usage: Usage = { inputTokens: 0, outputTokens: 0 };
   private finished = false;
+  /** Whether this step offers the loop's tools, which then must reach the model through our MCP server. */
+  private readonly expectsTools: boolean;
+
+  constructor({ expectsTools = false }: { expectsTools?: boolean } = {}) {
+    this.expectsTools = expectsTools;
+  }
 
   /** Whether the step has ended (a finish or an error was said): the process can be stopped. */
   get done(): boolean {
@@ -92,6 +98,8 @@ export class ClaudeCodeStream {
     }
     if (!isRecord(event)) return [];
     switch (event.type) {
+      case "system":
+        return event.subtype === "init" ? this.init(event) : [];
       case "stream_event":
         return this.streamEvent(event.event);
       case "assistant":
@@ -114,6 +122,25 @@ export class ClaudeCodeStream {
     if (this.finished) return [];
     const said = stderr.trim().split("\n").slice(-3).join(" ");
     return this.end(failure(said || `claude exited with code ${exitCode ?? "unknown"}`));
+  }
+
+  /**
+   * The session as Claude Code started it: a step that offers tools ends here, saying so, when our tool server
+   * did not connect, since the model would otherwise answer without its tools (writing tool calls as text).
+   */
+  private init(event: Json): ModelChunk[] {
+    if (!this.expectsTools) return [];
+    const servers = Array.isArray(event.mcp_servers) ? event.mcp_servers : [];
+    const ours = servers.find((server): server is Json => isRecord(server) && server.name === "ta");
+    if (ours?.status === "connected") return [];
+    return this.end({
+      type: "error",
+      error: {
+        kind: "provider",
+        message: message("model.claudeCodeToolsFailed", { status: String(ours?.status ?? "missing") }),
+        retryable: false,
+      },
+    });
   }
 
   private streamEvent(raw: unknown): ModelChunk[] {

@@ -486,6 +486,8 @@ Tauric API 金鑰還能取得申報文件、財報、新聞等資料。沒有金
   "model.claudeCodeLimit": ({ said }) =>
     `Claude 訂閱的使用額度已達上限（${said}）；請稍後再試或改用其他模型。`,
   "model.claudeCodeFailed": ({ said }) => `Claude Code 執行失敗：${said}`,
+  "model.claudeCodeToolsFailed": ({ status }) =>
+    `Claude Code 無法連上 TradingAgents 的工具（工具伺服器狀態：${status}），為避免在沒有資料的情況下回答，已停止這個問題。請用 npm run install:local 重新安裝後再問一次。`,
 
   // Sessions
   "session.switchFailed": ({ reason }) => `無法切換模型（${reason}）；工作階段維持原本的模型。`,

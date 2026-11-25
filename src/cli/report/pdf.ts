@@ -215,23 +215,37 @@ export async function reportPdf(
     const pieces = runs.flatMap((run) =>
       split(run.text, run.code ? "mono" : run.bold ? "bold" : "regular").map((piece) => ({ run, ...piece })),
     );
-    if (!pieces.length) return;
-    doc.x = x;
-    pieces.forEach(({ run, text, face }, index) => {
-      doc
-        .font(face)
-        .fontSize(run.code || run.cite ? size - 1 : size)
-        .fillColor(run.cite ? MUTED : run.link ? BRAND_TEXT : color);
-      const options = {
-        continued: index < pieces.length - 1,
-        features: FEATURES,
-        lineGap: LINE_GAP,
-        ...(run.italic ? { oblique: 10 } : {}),
-        ...(run.link ? { link: run.link, underline: true } : { link: null, underline: false }),
-      };
-      if (index === 0) doc.text(text, x, doc.y, { ...options, width: w });
-      else doc.text(text, options);
-    });
+    const [first] = pieces;
+    if (!first) return;
+    // PDFKit carries a continued line's x past a newline inside it, so text after a line break in a paragraph
+    // of several faces (Chinese with Latin, say) started where the line before had ended. Each line is set on
+    // its own, from the paragraph's left; only the pieces within one line are continued.
+    const lines: (typeof pieces)[] = [[]];
+    for (const piece of pieces)
+      piece.text.split("\n").forEach((text, index) => {
+        if (index > 0) lines.push([]);
+        if (text) lines[lines.length - 1]?.push({ ...piece, text });
+      });
+    for (const line of lines) {
+      // An empty line keeps its height.
+      const parts = line.length ? line : [{ ...first, text: " " }];
+      doc.x = x;
+      parts.forEach(({ run, text, face }, index) => {
+        doc
+          .font(face)
+          .fontSize(run.code || run.cite ? size - 1 : size)
+          .fillColor(run.cite ? MUTED : run.link ? BRAND_TEXT : color);
+        const options = {
+          continued: index < parts.length - 1,
+          features: FEATURES,
+          lineGap: LINE_GAP,
+          ...(run.italic ? { oblique: 10 } : {}),
+          ...(run.link ? { link: run.link, underline: true } : { link: null, underline: false }),
+        };
+        if (index === 0) doc.text(text, x, doc.y, { ...options, width: w });
+        else doc.text(text, options);
+      });
+    }
   };
 
   const table = (part: Extract<Part, { kind: "table" }>, x: number, w: number) => {
