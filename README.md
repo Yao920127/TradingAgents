@@ -19,18 +19,6 @@
   <a href="https://tauric.ai/"><img alt="TradingAgents #1 Repository of the Day" src="https://trendshift.io/api/badge/repositories/16192" width="250" height="55"/></a>
 </p>
 
-<p align="center">
-  <a href="https://tauricresearch.github.io/TradingAgents/">English</a> |
-  <a href="https://tauricresearch.github.io/TradingAgents/de/">Deutsch</a> |
-  <a href="https://tauricresearch.github.io/TradingAgents/es/">Español</a> |
-  <a href="https://tauricresearch.github.io/TradingAgents/fr/">français</a> |
-  <a href="https://tauricresearch.github.io/TradingAgents/ja/">日本語</a> |
-  <a href="https://tauricresearch.github.io/TradingAgents/ko/">한국어</a> |
-  <a href="https://tauricresearch.github.io/TradingAgents/pt/">Português</a> |
-  <a href="https://tauricresearch.github.io/TradingAgents/ru/">Русский</a> |
-  <a href="https://tauricresearch.github.io/TradingAgents/zh/">中文</a>
-</p>
-
 <h1 align="center">TradingAgents: Towards Agentic Finance Research</h1>
 
 <p align="center">
