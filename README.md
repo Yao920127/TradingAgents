@@ -47,10 +47,12 @@
 **2. Install**
 
 ```bash
-curl -fsSL https://tauric.ai/tradingagents/install.sh | sh
+git clone https://github.com/Yao920127/TradingAgents.git
+cd TradingAgents
+bun run install:local
 ```
 
-Or with npm: `npm i -g @tauric/tradingagents`
+It needs [Bun](https://bun.sh) and Node.js 22 or newer on macOS or Linux, builds this repository, and installs `tradingagents` in `~/.local/bin`. To update: `git pull`, then `bun run install:local` again. The `claude-code` provider runs on the Claude Code signed in on your own computer and is for your own use only.
 
 **3. Run**
 
